@@ -10,7 +10,7 @@ class UsersSpider(scrapy.Spider):
     @property
     def start_urls(self):
         url_temp = 'https://www.shiyanlou.com/users/{}'
-        return (url_temp.format(i) for i in range(525000, 524800, -10))
+        return (url_temp.format(i) for i in range(310176, 310000, -10))
 
     def parse(self, response):
         item = UserItem(
@@ -22,7 +22,7 @@ class UsersSpider(scrapy.Spider):
             learn_courses_num = response.css('span.tab-item::text').re_first('\D+(\d+)\D+')
         )
         if len(response.css('div.user-avatar img').extract()) == 2:
-            item.is_vip = 1
+            item['is_vip'] = True
 
         yield item
 
