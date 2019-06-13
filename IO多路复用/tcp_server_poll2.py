@@ -2,68 +2,79 @@ import select
 import socket
 import time
 
-sock_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock_server.setblocking(False)
-sock_server.bind(('', 1234))
-sock_server.listen()
+server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_sock.setblocking(False)
+server_sock.bind(('', 1234))
+server_sock.listen()
 
-connections = {}    # 存放新建临时分支套接字
-p = select.poll()   # 创建 poll 对象
-# 将主套接字 sock_server 的文件描述符注册到读事件链表里
-# poll 对象的 register 方法接收俩参数：套接字的文件描述符、链表类型
-# 针对套接字的仨事件：POLLIN 可读，POLLOUT 可写，POLLHUP 关闭
-p.register(sock_server.fileno(), select.POLLIN)
-print('server listening !!!')
+connections = {}      # 存放新建临时分支套接字，key 是文件描述符，value 是套接字
+poll = select.poll()  # 创建 poll 对象
+# 将主套接字 server_sock 的文件描述符注册到读事件链表里
+# poll 对象的 register 方法接收俩参数：套接字的文件描述符、链表类型（事件描述符）
+# 针对套接字的仨事件及其描述符（正整数）：
+# POLLIN 可读 1 ，POLLOUT 可写 4 ，POLLHUP 关闭 16
+poll.register(server_sock.fileno(), select.POLLIN)
+
+print('Waiting for connection...')
 while True:
-    print('============循环============')
-    # 获取发生事件的文件描述符
-    for fd, event in p.poll():
-        print('-------------- 套接字FD: {} event: {}'.format(fd, event))
-        print('-------------- connections: {}'.format(connections))
-        print('--------------', select.POLLIN)
-        print('--------------', select.POLLOUT)
-        print('--------------', select.POLLHUP)
-        # 如果主套接字有情况，一定是读事件，它只管接收客户端连接
-        if fd == sock_server.fileno():
-            # 接收客户端的连接，会创建新的套接字，用来处理发送和接收数据
-            extension_server, addr = sock_server.accept()
-            print('Accept connection:', addr)
-            # 将新的套接字设置为非阻塞的
-            extension_server.setblocking(0)
-            # 将新的连接注册读事件，用来读取客户端的数据
-            p.register(extension_server.fileno(), select.POLLIN)
-            # 把新建临时分支套接字加入到字典里
-            connections[extension_server.fileno()] = extension_server
-        # 如果发生可读事件，也就是说已连接的客户端发送数据过来
-        elif event & select.POLLIN:
-            # 根据文件描述符，获取发生读事件的临时套接字
-            conn = connections[fd]
-            # 开始接收数据
-            data = conn.recv(1024)
-            if data:
-                print('收到数据: ', data.decode())
-            # 将注册的事件修改为可写事件，向客户端发送数据
-            p.modify(fd, select.POLLOUT)
-        # 如果发生写事件，也就是临时套接字处理完客户端发来的信息后，回信息
-        elif event & select.POLLOUT:
-            print("向客户端发送数据...")
-            # 获取发生写事件的socket对象
-            conn = connections[fd]
-            # 开始发送数据
-            conn.send('收到信息，这是模拟信息'.encode())
-            # 关闭socket连接
-            conn.shutdown(socket.SHUT_RDWR)
-        # 如果发生关闭事件
-        elif event & select.POLLHUP:
-            print('event POLLHUP')
-            # 注销文件描述符，不再接收事件
-            p.unregister(fd)
-            # 关闭连接
-            connections[fd].close()
-            # 从socket对象集中删除
-            del connections[fd]
-print('\nClose ...', sock_server.fileno())
-# 注销sock_server
-p.unregister(sock_server.fileno())
+    time.sleep(1)
+    print('============循环开始============')
+    # 获取发生事件的文件描述符和事件描述符
+    try:
+        for fd, event in poll.poll():
+            print('------------套接字FD: {} event: {}'.format(fd, event))
+            # 如果主套接字有情况，一定是读事件，它只管接收客户端连接
+            if fd == server_sock.fileno():
+                # 接收客户端的连接，会创建新的套接字，用来处理发送和接收数据
+                extension_sock, addr = server_sock.accept()
+                # print('extension_sock.getpeername: {}'.format(
+                #     extension_sock.getpeername()))
+                print('Accept connection:', addr)
+                # 将新的套接字设置为非阻塞的
+                extension_sock.setblocking(0)
+                # 将新的连接注册读事件，用来读取客户端的数据
+                poll.register(extension_sock.fileno(), select.POLLIN)
+                # 把新建临时分支套接字加入到字典里
+                connections[extension_sock.fileno()] = extension_sock
+            # 如果发生可读事件，也就是说已连接的客户端发送数据过来
+            elif event & select.POLLIN:
+                # 根据文件描述符，获取发生读事件的临时套接字
+                extension_sock= connections[fd]
+                # 开始接收数据
+                try:
+                    data = extension_sock.recv(1024)
+                except ConnectionResetError:
+                    poll.modify(fd, select.POLLHUP)
+                if data:
+                    print('从客户端 {} 收到数据: {}'.format(fd, data.decode()))
+                    # 将注册的事件修改为可写事件，向客户端发送数据
+                    poll.modify(fd, select.POLLOUT)
+            # 如果发生写事件，也就是临时套接字处理完客户端发来的信息后，回信息
+            elif event & select.POLLOUT:
+                print("向客户端 {} 发送数据...".format(fd))
+                # 获取发生写事件的socket对象
+                extension_sock = connections[fd]
+                # 开始发送数据
+                extension_sock.send('收到信息，这是模拟信息'.encode())
+                # 将注册的事件修改为可写事件，向客户端发送数据
+                poll.modify(fd, select.POLLIN)
+                # 关闭socket连接
+                # extension_sock.shutdown(socket.SHUT_RDWR)
+            # 如果发生关闭事件
+            elif event & select.POLLHUP:
+                print('套接字关闭: {}'.format(connections[fd]))
+                # 注销文件描述符，不再接收事件
+                poll.unregister(fd)
+                # 关闭连接
+                connections[fd].close()
+                # 从socket对象集中删除
+                del connections[fd]
+        print('------------connections: {}'.format(connections))
+        print('============循环结束============')
+    except KeyboardInterrupt:
+        break
+print('\nEnd')
+# 注销server_sock
+poll.unregister(server_sock.fileno())
 # 关闭连接
-sock_server.close()
+server_sock.close()
