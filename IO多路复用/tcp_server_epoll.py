@@ -165,8 +165,14 @@ while True:
                 # 转而监视其可写事件，下个 while 循环会处理
                 p.modify(fd, select.POLLOUT)
             else:
-                print('LLLLLLLLLLLLLLLLLLLL')
-                p.modify(fd, select.POLLOUT)
+                # 如果收到的数据是 None ，可能客户端已关闭，连接已断开
+                # 注销文件描述符对应的套接字，不再监视相关事件
+                p.unregister(fd)
+                # 关闭套接字
+                extension_sock.close()
+                # 将套接字从 connections 里移出
+                del connections[fd]
+                print('套接字 {} 已关闭'.format(fd))
 
         # 如果套接字可写事件就绪
         if flag & select.POLLOUT:
@@ -179,7 +185,7 @@ while True:
 
         # 如果客户端关闭，临时套接字的关闭事件会就绪
         if flag & select.POLLHUP:
-            print('套接字 {} 关闭'.format(fd))
+            print('套接字 {} 已关闭'.format(fd))
             # 注销文件描述符对应的套接字，不再监视相关事件
             p.unregister(fd)
             # 关闭套接字
