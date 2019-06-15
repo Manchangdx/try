@@ -32,7 +32,6 @@ class Epoll():
         # 因为 epoll 与 kqueue 所提供的事件位掩码不同
         # 所以统一改成 poll 提供的事件位掩码
         for fd, flag in events:
-            print('((((((((((((((((', flag)
             # 可读事件就绪
             if flag & select.EPOLLIN:
                 # 将事件位掩码转换为 POLLIN
@@ -152,13 +151,8 @@ while True:
             # 利用文件描述符从 connections 里获取对应的临时套接字
             extension_sock = connections[fd]
             # 接收数据这块儿需要注意，如果客户端突然关闭连接
-            # 对应的临时套接字会同时可读和关闭就绪，即事件位掩码为 17
-            # 此时套接字的 recv 方法在运行时会触发 ConnectionResetError 异常
-            # 捕获这个异常，使程序向下执行，顺利关闭套接字
-            try: 
-                data = extension_sock.recv(1024)
-            except ConnectionResetError:
-                pass
+            # 对应的临时套接字会可读就绪，即事件位掩码为 1
+            data = extension_sock.recv(1024)
             if data:
                 print('套接字 {} 收到数据: {}'.format(fd, data.decode()))
                 # 套接字收到数据后，可写事件立即就绪
@@ -184,6 +178,7 @@ while True:
             p.modify(fd, select.POLLIN)
 
         # 如果客户端关闭，临时套接字的关闭事件会就绪
+        # 注意，关闭事件无法使用 poll.modify 方法主动设置，只能被触发
         if flag & select.POLLHUP:
             print('套接字 {} 已关闭'.format(fd))
             # 注销文件描述符对应的套接字，不再监视相关事件
