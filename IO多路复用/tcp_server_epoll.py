@@ -25,22 +25,27 @@ class Epoll():
 
     def poll(self, timeout=None):
         # 监听已注册的套接字，该方法为阻塞运行，直到有事件就绪
+        # 获取就绪事件列表
         events = self._epoll.poll(timeout)
-        connections = {}
-        # 处理事件掩码
+        # 这个字典用来保存处理后的就绪事件
+        events_ = {}
+        # 因为 epoll 与 kqueue 所提供的事件位掩码不同
+        # 所以统一改成 poll 提供的事件位掩码
         for fd, flag in events:
-            # 发生读事件
+            print('((((((((((((((((', flag)
+            # 可读事件就绪
             if flag & select.EPOLLIN:
-                # 将事件转换为POLLIN
-                connections[fd] = connections.get(fd, 0) | select.POLLIN
-            # 发生写事件
+                # 将事件位掩码转换为 POLLIN
+                events_[fd] = events_.get(fd, 0) | select.POLLIN
+            # 可写事件就绪
             if flag & select.EPOLLOUT:
-                # 将事件转换为POLLOUT
-                connections[fd] = connections.get(fd, 0) | select.POLLOUT
-            # 发生挂起事件
-            if event & select.POLLHUP:
-                connections[fd] = connections.get(fd, 0) | select.POLLHUP
-        return connections.items()
+                # 将事件位掩码转换为 POLLOUT
+                events_[fd] = events_.get(fd, 0) | select.POLLOUT
+            # 关闭事件就绪
+            if flag & select.EPOLLHUP:
+                # 将事件位掩码转换为 POLLOUT
+                events_[fd] = events_.get(fd, 0) | select.POLLHUP
+        return events_.items()
 
 # 封装kqueue对象，Mac平台调用
 # kqueue的接口和poll的接口相差比较大
@@ -156,12 +161,15 @@ while True:
                 pass
             if data:
                 print('套接字 {} 收到数据: {}'.format(fd, data.decode()))
-            # 套接字收到数据后，可写事件立即就绪
-            # 转而监视其可写事件，下个 while 循环会处理
-            p.modify(fd, select.POLLOUT)
+                # 套接字收到数据后，可写事件立即就绪
+                # 转而监视其可写事件，下个 while 循环会处理
+                p.modify(fd, select.POLLOUT)
+            else:
+                print('LLLLLLLLLLLLLLLLLLLL')
+                p.modify(fd, select.POLLOUT)
 
         # 如果套接字可写事件就绪
-        elif flag & select.POLLOUT:
+        if flag & select.POLLOUT:
             print("套接字 {} 发送数据...".format(fd))
             extension_sock = connections[fd]
             # 向客户端发送数据
@@ -182,8 +190,7 @@ while True:
     print('--------connections: {}'.format(list(connections.keys())))
     print('========循环结束========')
 
+p.unregister(server_sock.fileno())
 # 关闭服务端
 server_sock.close()
-# 关闭epoll或kqueue
-p.close()
 print('\nEnd')

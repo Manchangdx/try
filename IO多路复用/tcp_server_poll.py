@@ -47,31 +47,58 @@ while True:
             # 利用文件描述符从存储连接的字典里获取可读事件就绪的临时套接字
             extension_sock= connections[fd]
             # 接收数据这块儿需要注意，如果客户端突然关闭连接
+            # 在 Mac OS 系统中：  
             # 对应的临时套接字会同时可读和关闭就绪，即事件位掩码为 17
             # 此时套接字的 recv 方法在运行时会触发 ConnectionResetError 异常
             # 捕获这个异常，使程序向下执行，顺利关闭套接字
-            try:
-                data = extension_sock.recv(1024)
-            except ConnectionResetError:
-                pass
-            if data:
-                print('套接字 {} 收到数据: {}'.format(fd, data.decode()))
+            if hasattr(select, 'kqueue'):
+                try:
+                    data = extension_sock.recv(1024)
+                except ConnectionResetError:
+                    pass
+                if data:
+                    print('套接字 {} 收到数据: {}'.format(fd, data.decode()))
                 # 套接字接收数据后，可写事件会立刻就绪
                 # poll 转而监视其可写事件，下个 while 循环会处理
                 poll.modify(fd, select.POLLOUT)
-
+            # 在 Linux 系统中如果客户端突然关闭连接：  
+            # 对应的临时套接字只会可读就绪，即事件位掩码为 1
+            # 接收到的数据为 None 
+            # 不论 data 的值是多少，都转换成监视其可写事件
+            else:
+                data = extension_sock.recv(1024)
+                if data:
+                    print('套接字 {} 收到数据: {}'.format(fd, data.decode()))
+                    # 套接字接收数据后，可写事件会立刻就绪
+                    # poll 转而监视其可写事件，下个 while 循环会处理
+                    poll.modify(fd, select.POLLOUT)
+                else:
+                    # 如果 data 为空，可以判断连接已断开，现在关闭套接字
+                    print('套接字 {} 关闭'.format(fd))
+                    # 注销文件描述符对应的套接字，不再监视之
+                    poll.unregister(fd)
+                    # 关闭套接字
+                    connections[fd].close()
+                    # 将套接字从存储连接的字典里移除
+                    del connections[fd]
+    
         # 如果套接字可写就绪，也就是套接字收到客户端发来的数据后
         if flag & select.POLLOUT:
             print("套接字 {} 发送数据...".format(fd))
             # 利用文件描述符，从存储连接的字典里获取可读就绪的临时套接字
             extension_sock = connections[fd]
             # 发送数据
+            # 在 Linux 系统中，如果客户端突然断开连接
+            # 发送数据会失败，但不会报错
+            # 对应的套接字会关闭就绪，事件位掩码为 25
+            # 下一轮 while 循环会执行后面的关闭代码
             extension_sock.send('收到信息，这是模拟信息'.encode())
             # 套接字向客户端发送消息后，poll 转为监视其可读事件
             poll.modify(fd, select.POLLIN)
 
         # 如果客户端关闭，临时套接字的关闭事件会就绪
-        elif flag & select.POLLHUP:
+        # 注意，关闭事件无法使用 poll.modify 方法主动设置，只能被触发
+        if flag & select.POLLHUP:
             print('套接字 {} 关闭'.format(fd))
             # 注销文件描述符对应的套接字，不再监视之
             poll.unregister(fd)
