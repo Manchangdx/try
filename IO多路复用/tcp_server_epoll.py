@@ -55,7 +55,8 @@ class Kqueue():
         # 初始化实例时，创建 kqueue 对象，等同于 poll 对象
         self._kqueue = select.kqueue()  # kernel queue 内核队列对象
         # 保存被监听的临时套接字的字典，这个在 poll 和 epoll 里没有
-        # 它的作用是避免重复监视同一个套接字事件
+        # 因为在撤销监视套接字事件时，需要用到事件位掩码
+        # 字段的 key 是文件描述符，value 就是事件位掩码
         self._active = {}
 
     # 获取文件描述符，这个方法在该程序中没有用到
