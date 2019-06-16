@@ -126,7 +126,7 @@ class Kqueue():
             if kevent.filter == select.KQ_FILTER_WRITE:
                 events_[fd] = events_.get(fd, 0) | select.POLLOUT
         return events_.items()
-
+    # 关闭 kqueue 对象，作用不详
     def close(self):
         self._kqueue.close()
 
@@ -218,8 +218,8 @@ while True:
 
 # 撤销对主套接字的事件监听
 p.unregister(server_sock.fileno())
-# 关闭系统调用对象
-p.close()
+# 关闭系统调用对象，作用不详
+# p.close()
 # 关闭主套接字服务端
 server_sock.close()
 print('\nEnd')
