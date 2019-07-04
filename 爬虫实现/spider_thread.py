@@ -27,7 +27,7 @@ class Crawler(threading.Thread):
         # 该方法阻塞运行，直到成功连接服务器，Web 服务器端口通常为 80
         self.sock.connect((url.netloc, 80))
         print('连接成功')
-        # 向服务器发送数据的固定格式
+        # 向服务器发送的数据的固定格式
         data = 'GET {} HTTP/1.1\r\nHost: {}\r\n\r\n'.format(
             url.path, url.netloc)
         # 向服务器发送数据，阻塞运行

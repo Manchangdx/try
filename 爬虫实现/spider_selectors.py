@@ -31,7 +31,6 @@ class Crawler:
         # urlparse 方法用来处理 URL ，其返回值便于获得域名和路径
         self.url = urlparse(url)
         self._url = url
-        self.sock = None
         self.response = b''
 
     def fetch(self):
@@ -46,13 +45,13 @@ class Crawler:
             pass
         # 向 selector 这个系统调用中注册套接字的可写事件
         # 参数为套接字的文件描述符、事件常数、回调函数
-        # 当连接服务器成功后，自动执行可写事件的回调函数
+        # 当连接服务器成功后，可写事件会立即就绪，然后自动执行对应的回调函数
         # 注意回调函数的执行不是由操作系统决定的，而是由 selector 内部控制
         selector.register(self.sock.fileno(), EVENT_WRITE, self.writable)
 
     # 套接字可写事件就绪后，自动运行此回调函数
-    # 所有回调函数的参数都是固定的：SelectorKey 实例，事件常数
-    def writable(self, key, mask):
+    # 所有回调函数的参数都是固定的：SelectorKey 实例，事件常数（选填）
+    def writable(self, key):
         # 可写事件就绪后，这个事件就不需要再监听了，注销此事件
         # 不注销的话，selector 就一直提醒事件已就绪
         # SelectorKey 实例的 fd 属性值为对应的套接字的文件描述符
@@ -69,7 +68,7 @@ class Crawler:
 
     # 套接字可读事件就绪后，自动运行此回调函数
     # 可读事件就绪，并不代表内核空间已经接收完全部数据
-    def readable(self, key, mask):
+    def readable(self, key):
         print('接收数据', key.fd)
         # 接收服务器返回的数据，注意这步是从内核空间复制数据到用户空间
         # 每次最多接收 100K 数据，如果数据量比较大，该回调函数会运行多次
@@ -113,7 +112,7 @@ def loop():
             # SelectorKey 对象的 data 属性值就是回调函数
             callback = event_key.data
             # 运行回调函数
-            callback(event_key, event_mask)
+            callback(event_key)
 
 
 def main():

@@ -14,8 +14,8 @@ urls = ['https://dn-simplecloud.shiyanlou.com/ncn1.jpg',
 # 定义一个爬虫类
 class Crawler:
     def __init__(self, url):
-        self.url = url          # 定义该属性，方便后续使用
-        self.response = b''     # 该属性用来保存从服务器接收的二进制数据
+        self.url = url              # 定义该属性，方便后续使用
+        self.receive_data = b''     # 该属性用来保存从服务器接收的二进制数据
 
     def fetch(self):
         # urlparse 方法用来处理 URL ，其返回值便于获得域名和路径
@@ -25,17 +25,17 @@ class Crawler:
         # 该方法阻塞运行，直到成功连接服务器，Web 服务器端口通常为 80
         self.sock.connect((url.netloc, 80))
         print('连接成功')
-        # 向服务器发送数据的固定格式
+        # 向服务器发送的数据的固定格式
         data = 'GET {} HTTP/1.1\r\nHost: {}\r\n\r\n'.format(
             url.path, url.netloc)
         # 向服务器发送数据，阻塞运行
         self.sock.send(data.encode())
         # 接收服务器返回的数据，阻塞运行
         while True:
-            # 每次接收 1K 数据
+            # 每次至多接收 1K 数据
             d = self.sock.recv(1024)
             if d:
-                self.response += d
+                self.receive_data += d
             else:
                 break
         print('接收数据成功')
@@ -43,7 +43,7 @@ class Crawler:
         # 从服务器接收到的数据为二进制，其中第一部分为报头，第二部分为图片数据
         # 两部分之间使用 \r\n\r\n 隔开，选择第二部分存入文件
         with open(url.path[1:], 'wb') as f:
-            f.write(self.response.split(b'\r\n\r\n')[1])
+            f.write(self.receive_data.split(b'\r\n\r\n')[1])
         print('保存文件成功')
         self.sock.close()
 
