@@ -11,11 +11,11 @@ urls = ['https://dn-simplecloud.shiyanlou.com/ncn1.jpg',
         'https://dn-simplecloud.shiyanlou.com/1517282865454.png'
 ]
 '''
-urls = ['https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn1.jpg?raw=true',
-        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn109.jpg?raw=true',
-        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn110.jpg?raw=true',
-        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/1517282865454.png?raw=true',
-        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/1548126810319.png?raw=true'
+urls = ['https://github.com/shiyanlou/python_async_network/blob/master/pic/one.png?raw=true',
+        'https://github.com/shiyanlou/python_async_network/blob/master/pic/two.png?raw=true',
+        'https://github.com/shiyanlou/python_async_network/blob/master/pic/three.png?raw=true',
+        'https://github.com/shiyanlou/python_async_network/blob/master/pic/four.png?raw=true',
+        'https://github.com/shiyanlou/python_async_network/blob/master/pic/five.png?raw=true'
 ]
 
 
