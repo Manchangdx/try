@@ -3,11 +3,19 @@ import socket
 from urllib.parse import urlparse
 
 # 需要爬取图片的地址列表
+'''
 urls = ['https://dn-simplecloud.shiyanlou.com/ncn1.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn110.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn109.jpg',
         'https://dn-simplecloud.shiyanlou.com/1548126810319.png',
         'https://dn-simplecloud.shiyanlou.com/1517282865454.png'
+]
+'''
+urls = ['https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn1.jpg?raw=true',
+        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn109.jpg?raw=true',
+        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/ncn110.jpg?raw=true',
+        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/1517282865454.png?raw=true',
+        'https://github.com/Manchangdx/try/blob/master/%E7%88%AC%E8%99%AB%E5%AE%9E%E7%8E%B0/1548126810319.png?raw=true'
 ]
 
 
@@ -39,10 +47,10 @@ class Crawler:
             else:
                 break
         print('接收数据成功')
-        # 第一个参数为文件名，注意 url.path 的值的第一个字符为斜杠，须去掉
+        # 取 url.path 用斜扛分隔之后的最后一部分，作为保存图片的文件名
         # 从服务器接收到的数据为二进制，其中第一部分为报头，第二部分为图片数据
         # 两部分之间使用 \r\n\r\n 隔开，选择第二部分存入文件
-        with open(url.path[1:], 'wb') as f:
+        with open(url.path.split('/')[-1], 'wb') as f:
             f.write(self.receive_data.split(b'\r\n\r\n')[1])
         print('保存文件成功')
         self.sock.close()
