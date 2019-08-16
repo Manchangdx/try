@@ -1,21 +1,19 @@
+import os
 import time
 import socket
 from urllib.parse import urlparse
 
 # 需要爬取图片的地址列表
-'''
 urls = ['https://dn-simplecloud.shiyanlou.com/ncn1.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn110.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn109.jpg',
         'https://dn-simplecloud.shiyanlou.com/1548126810319.png',
-        'https://dn-simplecloud.shiyanlou.com/1517282865454.png'
-]
-'''
-urls = ['https://github.com/shiyanlou/python_async_network/blob/master/pic/one.png?raw=true',
-        'https://github.com/shiyanlou/python_async_network/blob/master/pic/two.png?raw=true',
-        'https://github.com/shiyanlou/python_async_network/blob/master/pic/three.png?raw=true',
-        'https://github.com/shiyanlou/python_async_network/blob/master/pic/four.png?raw=true',
-        'https://github.com/shiyanlou/python_async_network/blob/master/pic/five.png?raw=true'
+        'https://dn-simplecloud.shiyanlou.com/1517282865454.png',
+        'https://dn-simplecloud.shiyanlou.com/1543913883545.png',
+        'https://dn-simplecloud.shiyanlou.com/1502778396172.png',
+        'https://dn-simplecloud.shiyanlou.com/1540965522764.png',
+        'https://dn-simplecloud.shiyanlou.com/1546500900109.png',
+        'https://dn-simplecloud.shiyanlou.com/1547620906601.png'
 ]
 
 
@@ -34,7 +32,8 @@ class Crawler:
         self.sock.connect((url.netloc, 80))
         print('连接成功')
         # 向服务器发送的数据的固定格式
-        data = 'GET {} HTTP/1.1\r\nHost: {}\r\n\r\n'.format(
+        #data = 'GET {} HTTP/1.0\r\nHost: {}\r\n\r\n'.format(
+        data = 'GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n'.format(
             url.path, url.netloc)
         # 向服务器发送数据，阻塞运行
         self.sock.send(data.encode())
@@ -50,12 +49,13 @@ class Crawler:
         # 取 url.path 用斜扛分隔之后的最后一部分，作为保存图片的文件名
         # 从服务器接收到的数据为二进制，其中第一部分为报头，第二部分为图片数据
         # 两部分之间使用 \r\n\r\n 隔开，选择第二部分存入文件
-        with open(url.path.split('/')[-1], 'wb') as f:
+        with open('pic'+url.path, 'wb') as f:
             f.write(self.receive_data.split(b'\r\n\r\n')[1])
         print('保存文件成功')
         self.sock.close()
 
 def main():
+    os.system('mkdir -p pic')
     start = time.time()
     for url in urls:
         # 创建爬虫实例

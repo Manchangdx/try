@@ -1,3 +1,4 @@
+import os
 import time
 import socket
 from urllib.parse import urlparse
@@ -12,7 +13,12 @@ urls = ['https://dn-simplecloud.shiyanlou.com/ncn1.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn110.jpg',
         'https://dn-simplecloud.shiyanlou.com/ncn109.jpg',
         'https://dn-simplecloud.shiyanlou.com/1548126810319.png',
-        'https://dn-simplecloud.shiyanlou.com/1517282865454.png'
+        'https://dn-simplecloud.shiyanlou.com/1517282865454.png',
+        'https://dn-simplecloud.shiyanlou.com/1543913883545.png',
+        'https://dn-simplecloud.shiyanlou.com/1502778396172.png',
+        'https://dn-simplecloud.shiyanlou.com/1540965522764.png',
+        'https://dn-simplecloud.shiyanlou.com/1546500900109.png',
+        'https://dn-simplecloud.shiyanlou.com/1547620906601.png'
 ]
 
 
@@ -41,6 +47,7 @@ class Crawler:
         try:
             # 连接需要时间，非阻塞模式下这里会报出 BlockingIOError 异常
             self.sock.connect((self.url.netloc, 80))
+            time.sleep(.1)
         except BlockingIOError:
             pass
         # 向 selector 这个系统调用中注册套接字的可写事件
@@ -58,7 +65,7 @@ class Crawler:
         selector.unregister(key.fd)
         print('连接成功', key.fd)
         # 向服务器发送数据，这是网页请求的固定格式
-        data = 'GET {} HTTP/1.1\r\nHost: {}\r\n\r\n'.format(
+        data = 'GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n'.format(
             self.url.path, self.url.netloc)
         self.sock.send(data.encode())
         print('发送数据成功', key.fd)
@@ -101,14 +108,15 @@ def loop():
     # 事件循环，不停地查询被监听的事件是否就绪
     while not signal.stop:
         print('-------------------')
-        # selector.select 方法为非阻塞运行
-        # 只是轮询被监听事件，立即返回就绪事件列表
+        # selector.select 方法为阻塞运行
+        # 轮询被监听事件，如有事件就绪，立即返回就绪事件列表
         # 该方法的功能类似于 select().select 方法，具体用法不同
         events = selector.select()
         # 事件列表中每个事件是一个元组，元组里有俩元素
         # 分别是 SelectorKey 对象和事件常数
         print(events)
-        for event_key, event_mask in events:
+        # 事件常数 event_mask 暂时用不到，使用下划线接收该值
+        for event_key, _ in events:
             # SelectorKey 对象的 data 属性值就是回调函数
             callback = event_key.data
             # 运行回调函数
@@ -116,6 +124,7 @@ def loop():
 
 
 def main():
+    os.system('mkdir -p img')
     start = time.time()
     for url in urls:
         # 创建爬虫实例
