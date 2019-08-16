@@ -27,13 +27,13 @@ class Future:
         self.result = None
         self._add_step_func = []
 
-    def add_done_callback(self, fn):
-        self._add_step_func.append(fn)
+    def add_done_callback(self, func):
+        self._add_step_func.append(func)
 
     def set_result(self, result):
         self.result = result
-        for fn in self._add_step_func:
-            fn(self)
+        for func in self._add_step_func:
+            func(self)
 
     # 实现 __iter__ 方法，Future 类的实例为 iterable
     def __iter__(self):
@@ -103,18 +103,21 @@ class Crawler:
         sock = AsyncSocket()
         # connect是协程，yield from调用子协程
         yield from sock.connect((self.url.netloc, 80))
-        get = 'GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n'.format(self.url.path, self.url.netloc)
-        sock.send(get.encode())
+        data = 'GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n \
+                '.format(self.url.path, self.url.netloc)
+        sock.send(data.encode())
+        ###selector.register(sock.fileno(), EVENT_READ, on_readable)
         # 不断的读取数据，直到数据返回空
         while True:
             # 读取数据
-            chunk = yield from sock.read()
-            if chunk:
-                self.response += chunk
+            value = yield from sock.read()
+            if value:
+                self.response += value
             else:
                 urls.remove(self._url)
                 if not urls:
                     stopped = True
+                ###selector.unregister(self.sock.fileno())
                 sock.close()
                 # 将图片数据存入文件
                 with open('pic' + self.url.path, 'wb') as file:
@@ -131,10 +134,10 @@ class Task:
 
     def step(self, future):
         try:
-            next_futrue = self.coro.send(future.result)
+            new_futrue = self.coro.send(future.result)
         except StopIteration:
             return
-        next_futrue.add_done_callback(self.step)
+        new_futrue.add_done_callback(self.step)
 
 
 def loop():
