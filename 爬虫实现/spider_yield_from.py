@@ -106,7 +106,7 @@ class Crawler:
         sock = AsyncSocket()
         # 向服务器发送连接请求，协程会暂停到嵌套协程中的某个 yield 处
         yield from sock.connect((self.url.netloc, 80))
-        data = 'GET {0} HTTP/1.1\r\nHost: {1}\r\nConnection: close\r\n\r\n \
+        data = 'GET {} HTTP/1.1\r\nHost: {}\r\nConnection: close\r\n\r\n \
                 '.format(self.url.path, self.url.netloc)
         sock.send(data.encode())
         # 不断循环以读取服务器返回的数据片段，直到数据返回空
