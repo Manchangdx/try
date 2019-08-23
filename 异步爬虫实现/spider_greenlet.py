@@ -27,6 +27,7 @@ class Hub():
         waiter = Waiter()
         # 设置回调方法为 waiter 的 switch 方法
         self.callback = waiter.switch
+        # 将 waiter 实例的 get 方法的返回值作为此函数的返回值
         return waiter.get()
 
     def set_result(self, data):
@@ -49,14 +50,6 @@ class Waiter:
         # 当前协程就是 Crawler 实例的 fetch 方法
         self.gr = greenlet.getcurrent()
         return self.main_gr.switch()
-        '''
-        try:
-            # 切换执行主协程
-            return self.main_gr.switch('haha')
-        finally:
-            print('asdfasdfasdf')
-            #self.greenlet = None
-        '''
 
 
 class Crawler:
@@ -79,15 +72,7 @@ class Crawler:
         # 创建 Hub 类的实例
         h = Hub()
         # 写事件的回调函数，套接字的写事件就绪时自动运行此函数
-        print(greenlet.getcurrent())
         def writable():
-            print(greenlet.getcurrent())
-            # 可写事件发生之后，调用回调方法 writable
-            # 再 Hub 的 set_result 方法中开始调用 callback 方法
-            # callback 方法是 waiter 的 switch 方法，所以调用的是 waiter.switch 方法
-            # switch 方法中有调用的是 greenlet 的 switch 方法
-            # greenlet 是保存的当前的协程，所以又切换回来继续执行
-            # 是用 wait 方法切换出去的，这时候再从 wait 方法继续执行
             h.set_result(None)
         # 注册监听套接字的写事件，顺便注册回调函数
         selector.register(sock.fileno(), EVENT_WRITE, writable)
@@ -100,33 +85,17 @@ class Crawler:
         sock.send(data.encode())
         # 读事件的回调函数，套接字的读事件就绪时自动运行此函数
         def readable():
-            # 在可读事件发生之后
-            # socket 接收服务端发生的数据
-            # 将数据值通过 switch 方法传给当前协程
             h.set_result(sock.recv(4096))
         # 注册监听套接字的读事件，顺便注册回调函数
         selector.register(sock.fileno(), EVENT_READ, readable)
         while True:
-            '''
-            def readable():
-                # 在可读事件发生之后
-                # socket 接收服务端发生的数据
-                # 将数据值通过 switch 方法传给当前协程
-                h.set_result(sock.recv(4096))
-            # 注册监听客户端套接字的读事件
-            selector.register(sock.fileno(), EVENT_READ, readable)
-            # 保存当前协程，并切换到 main 协程上执行
-            # 接收到的值会通过 switch 方法传递过来，赋值给 data
-            '''
             data = h.wait()
-            # 切换回来注销事件
-            # selector.unregister(sock.fileno())
-            # 在协程执行结束之后，会返回到父协程的方法中继续执行
             if data:
                 self.response += data
             else:
-                # 数据接收完
+                # 数据接收完，注销对客户端的监听
                 selector.unregister(sock.fileno())
+                # 从链接列表中移除此 URL
                 urls.remove(self._url)
                 if not urls:
                     stopped = True
@@ -137,7 +106,6 @@ class Crawler:
                 break
 
 
-# 爬虫
 def crawler():
     for url in urls:
         # 创建 Crawler 类的实例
@@ -152,6 +120,7 @@ def crawler():
 main_gr = greenlet(crawler)
 
 
+# 事件循环函数
 def loop():
     while not stopped:
         events = selector.select()
@@ -161,7 +130,6 @@ def loop():
 
 
 def main():
-    print(greenlet.getcurrent())
     start = time.time()
     os.system('mkdir -p pic')
     # 切换到父协程 main_gr 中执行
