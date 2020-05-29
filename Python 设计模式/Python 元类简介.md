@@ -140,18 +140,18 @@ class ListMeta(type):
 
     def __init__(self, name, bases, namespace, **kwargs):
         '''对类进行初始化'''
-        # 参数 cls 不是指 ListMeta ，而是指创建的类 List
-        print('__init__ cls:', self)
+        # 参数 self 指创建的类 List
+        print('__init__ self:', self)
         # 第一次使用 ListMeta 元类创建类 List 时
         # List 没有 sub_class_dict 这个属性，就定义一个空字典给它
-        # 使用 List 作为父类创建子类 L1 和 L2 时，子类会继承父类的 sub_class_dict 属性
-        # 那就向字典里添加键值对
-        # 也就是说，继承关系的类们共享父类的属性，除非子类重新定义该属性
+        # 使用 List 作为父类创建子类 L1 和 L2 时
+        # 子类会继承父类的 sub_class_dict 属性，这由 type.__new__ 完成
+        # 继承关系的类们共享父类的属性，除非子类重新定义该属性
         if not hasattr(self, 'sub_class_dict'):
             self.sub_class_dict = {}
         else:
             self.sub_class_dict[name.lower()] = self
-        print('初始化完成')
+        print('初始化完成\n')
         
         
 class List(list, metaclass=ListMeta):
@@ -166,11 +166,12 @@ class List(list, metaclass=ListMeta):
 
 class L1(List): ...
 class L2(List): ...
+  
 print(List.sub_class_dict)
 print(L2.sub_class_dict)
 
 l = List()
-l.append('adsf')
+l.add('adsf')
 print(l)
 ```
 
@@ -180,7 +181,7 @@ print(l)
 
 现需要创建一个类 NoInstance ，它不可以被调用，也就是不能创建实例，只能调用类的属性。实现这样的类是极为简单的，把它的 `__call__` 方法封死就行了，调用这个方法就抛异常即可。
 
-我们知道控制实例调用自身的方法是定义在类中的 `__call__` 方法，那么控制类调用自身生成实例的 `__call__` 方法就定义在元类之中，所以定义个元类，写个 `__call__` 方法就行了：
+我们知道控制实例调用自身的方法是定义在类中的 `__call__` 方法，那么控制类调用自身生成实例的 `__call__` 方法就定义在元类之中。所以定义个元类，写个 `__call__` 方法就行了：
 
 ```python
 In [280]: class NoInstanceMeta(type):
@@ -229,6 +230,8 @@ Out[284]: 'Irving'
 
 ```python
 class SingletonMeta(type):
+    '''单例类的元类'''
+    
     def __init__(self, *args, **kwargs):
         print('【SingletonMeta.__init__】初始化类')
         print('【SingletonMeta.__init__】self:', self)
@@ -253,7 +256,8 @@ print('11111111111111111111111111111111111111111111111111111111111111')
 
 class Singleton(metaclass=SingletonMeta):
     def __init__(self):
-        # 对类进行实例化时，会打印这个，多次实例化只会打印一次
+        # 对类进行实例化时，会打印这个，多次实例化操作只会打印一次
+        # 因为只执行一次元类的 __call__ 方法，而 __init__ 方法是由前者内部调用的
         print('【Singleton.__init__】Creating Spam')
 
 
