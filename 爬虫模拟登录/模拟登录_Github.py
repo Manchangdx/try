@@ -6,7 +6,7 @@ class GithubSpider(scrapy.Spider):
     start_urls = ['https://github.com/login']
 
     def parse(self, response):
-        token = response.xpath('//form/input[2]/@value').extract_first()
+        token = response.xpath('//form/input[1]/@value').extract_first()
         return scrapy.FormRequest.from_response(
                 response,
                 formdata = {
@@ -21,7 +21,7 @@ class GithubSpider(scrapy.Spider):
         self.logger.error('into after_parse')
         self.logger.error(response.body)
         return scrapy.Request(
-            url = 'https://github.com/Manchangdx/fluent',
+            url = 'https://github.com/xxx/xxx',
             callback = self.xxx
         )
 
